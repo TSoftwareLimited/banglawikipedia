@@ -24,11 +24,13 @@
     </script>
     
     <style>
-        .glass { @apply bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-zinc-200 dark:border-white/5; }
+        .glass { @apply bg-white/70 dark:bg-zinc-950/70 backdrop-blur-3xl border-zinc-200/50 dark:border-white/10; }
         ::-webkit-scrollbar { width: 6px; }
         .dark ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
         .skeleton { @apply animate-pulse bg-zinc-200 dark:bg-zinc-800 rounded-xl; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .progress-bar { height: 3px; width: 0%; transition: width 0.1s ease; }
     </style>
 </head>
@@ -39,7 +41,7 @@
     </div>
 
     <nav class="sticky top-0 z-50 h-16 border-b glass flex items-center px-4 lg:px-6 justify-between transition-colors duration-300">
-        <div class="flex items-center gap-3 cursor-pointer">
+        <div onclick="window.location.href='index.html'" class="flex items-center gap-3 cursor-pointer">
             <div class="w-9 h-9 bg-zinc-900 dark:bg-white rounded-xl flex items-center justify-center transition-colors">
                 <span class="text-lg text-white dark:text-black font-bold">উ</span>
             </div>
@@ -63,15 +65,15 @@
         <aside class="hidden lg:flex flex-col w-64 h-[calc(100vh-64px)] sticky top-16 p-6 gap-8 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto">
             <div class="space-y-2">
                 <p class="text-xs font-bold text-zinc-400 uppercase px-3 mb-4 tracking-wider">মেনু</p>
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium transition-all">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium transition-all">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                     প্রধান পাতা
                 </a>
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all">
+                <a href="categories.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
                     বিভাগসমূহ
                 </a>
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all">
+                <a href="javascript:void(0)" id="random-article-btn" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     অজানা নিবন্ধ
                 </a>
@@ -95,7 +97,7 @@
         </aside>
 
         <main class="flex-1 p-4 lg:p-8 w-full">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
                 <div class="flex items-center gap-1">
                     <button class="px-4 py-2 text-sm font-bold border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">নিবন্ধ</button>
                     <button class="px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors">আলাপ</button>
@@ -107,22 +109,31 @@
                 </div>
             </div>
 
+            <!-- Stories System -->
+            <div id="stories-container" class="flex gap-6 overflow-x-auto pb-6 no-scrollbar scroll-smooth">
+                <!-- Loading Skeletons -->
+                <div class="flex-shrink-0 flex flex-col items-center gap-3 cursor-pointer group">
+                    <div class="w-28 h-28 rounded-[2rem] skeleton"></div>
+                    <div class="w-12 h-3 skeleton"></div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
                 <div class="xl:col-span-8 space-y-8">
-                    <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-[2.5rem] overflow-hidden shadow-sm backdrop-blur-md">
+                    <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-3xl overflow-hidden shadow-sm backdrop-blur-md">
                         <div class="h-64 sm:h-[400px] relative bg-zinc-200 dark:bg-zinc-800">
                             <img id="featured-image" src="" class="w-full h-full object-cover opacity-0 transition-opacity duration-700">
-                            <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent flex items-end p-6 lg:p-12">
-                                <div class="w-full space-y-4">
+                            <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent flex items-end p-5 lg:p-8">
+                                <div class="w-full space-y-2">
                                     <span id="featured-category" class="px-4 py-1.5 bg-blue-500 text-white text-[10px] uppercase tracking-widest font-black rounded-full mb-4 inline-block hidden"></span>
                                     <h1 id="featured-title" class="text-3xl sm:text-5xl lg:text-6xl font-black text-white skeleton w-3/4 h-16 leading-tight"></h1>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="p-8 lg:p-12">
-                            <p id="featured-excerpt" class="text-xl lg:text-2xl leading-[1.8] mb-10 skeleton w-full h-32 text-zinc-700 dark:text-zinc-300 font-light"></p>
-                            <button id="read-more-btn" class="hidden items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95">
+                        <div class="p-5 lg:p-7">
+                            <p id="featured-excerpt" class="text-xl lg:text-2xl leading-[1.8] mb-2 skeleton w-full h-32 text-zinc-700 dark:text-zinc-300 font-light"></p>
+                            <button id="read-more-btn" class="hidden items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95">
                                 সম্পূর্ণ পড়ুন
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </button>
@@ -131,25 +142,30 @@
                 </div>
 
                 <div class="xl:col-span-4 space-y-6">
-                    <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-[2.5rem] p-8 shadow-sm backdrop-blur-md">
-                        <h3 class="font-bold text-lg mb-5 flex items-center gap-2 text-zinc-900 dark:text-white">
+                    <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-3xl p-6 shadow-sm backdrop-blur-md">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2 text-zinc-900 dark:text-white">
                             <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                             সাম্প্রতিক নিবন্ধ
                         </h3>
                         
-                        <div id="sidebar-articles" class="space-y-4">
-                            <div class="flex gap-4 skeleton h-20 w-full"></div>
-                            <div class="flex gap-4 skeleton h-20 w-full"></div>
-                            <div class="flex gap-4 skeleton h-20 w-full"></div>
+                        <div id="sidebar-articles" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-2">
+                            <div class="flex items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl skeleton h-[82px] w-full"></div>
+                            <div class="flex items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl skeleton h-[82px] w-full"></div>
+                            <div class="flex items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl skeleton h-[82px] w-full"></div>
+                            <div class="hidden md:flex xl:hidden items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl skeleton h-[82px] w-full"></div>
                         </div>
                     </div>
 
-                    <div class="bg-gradient-to-br from-zinc-900 to-black dark:from-blue-600 dark:to-indigo-700 rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-500/10">
-                        <h3 class="font-black text-xs uppercase tracking-widest opacity-60 mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-3xl p-6 shadow-sm backdrop-blur-md">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2 text-zinc-900 dark:text-white">
+                            <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
                             আপনি কি জানেন?
                         </h3>
-                        <p class="text-lg opacity-90 leading-relaxed font-medium">পৃথিবীর প্রথম বিশ্ববিদ্যালয় নালন্দা প্রাচীনকালে অত্যন্ত প্রভাবশালী ছিল, যেখানে দূর-দূরান্ত থেকে শিক্ষার্থীরা আসত।</p>
+                        <div id="did-you-know-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-2">
+                            <div class="flex items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl skeleton h-[82px] w-full"></div>
+                            <div class="flex items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl skeleton h-[82px] w-full"></div>
+                            <div class="hidden md:flex xl:hidden items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl skeleton h-[82px] w-full"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -211,13 +227,27 @@
         const supabaseKey = 'sb_publishable_qzyHuTPdiitg0FZE6XCA5g_orpm2TsH';
         const supabase = createClient(supabaseUrl, supabaseKey);
 
+        // Random Article Navigation
+        document.getElementById('random-article-btn').onclick = async () => {
+            try {
+                const { data, error } = await supabase.from('articles').select('slug');
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    const random = data[Math.floor(Math.random() * data.length)];
+                    window.location.href = `article.html?slug=${random.slug}`;
+                }
+            } catch (err) {
+                console.error('Random article error:', err);
+            }
+        };
+
         async function fetchArticles() {
             try {
                 const { data: articles, error } = await supabase
                     .from('articles')
                     .select('*')
                     .order('created_at', { ascending: false })
-                    .limit(5);
+                    .limit(11);
 
                 if (error) throw error;
 
@@ -236,6 +266,69 @@
                 console.error('Supabase Error:', error.message);
                 showErrorState();
             }
+        }
+
+        async function fetchDidYouKnow() {
+            try {
+                const { data, error } = await supabase
+                    .from('did_you_know')
+                    .select('*');
+
+                if (error) throw error;
+                if (data) {
+                    // Shuffle all items and pick 5 random ones
+                    const randomItems = data.sort(() => 0.5 - Math.random()).slice(0, 6);
+                    renderDidYouKnow(randomItems);
+                }
+            } catch (error) {
+                console.error('Did You Know Error:', error.message);
+            }
+        }
+
+        function renderDidYouKnow(items) {
+            const container = document.getElementById('did-you-know-container');
+            container.innerHTML = items.map(item => `
+                <div onclick="window.location.href='${item.url || '#'}'" class="flex items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 rounded-xl transition-all cursor-pointer group">
+                    <div class="w-16 h-16 rounded-xl bg-yellow-500/10 dark:bg-yellow-500/20 flex items-center justify-center flex-shrink-0 text-yellow-500 transition-colors group-hover:bg-yellow-500 group-hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">${item.content}</p>
+                        <div class="flex items-center justify-between mt-1">
+                            <p class="text-xs text-zinc-500 font-medium">তথ্য</p>
+                            <span class="text-[10px] font-bold bg-zinc-200 dark:bg-zinc-700 px-2 py-0.5 rounded text-zinc-500 dark:text-zinc-400 group-hover:bg-blue-600 group-hover:text-white transition-all">দেখুন</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function fetchStories() {
+            try {
+                const { data: stories, error } = await supabase
+                    .from('stories')
+                    .select('*')
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+                if (stories) renderStories(stories);
+            } catch (error) {
+                console.error('Stories Error:', error.message);
+            }
+        }
+
+        function renderStories(stories) {
+            const container = document.getElementById('stories-container');
+            container.innerHTML = stories.map(story => `
+                <div onclick="if('${story.url || ''}') window.location.href='${story.url}'" class="flex-shrink-0 flex flex-col items-center gap-3 cursor-pointer group">
+                    <div class="w-28 h-28 rounded-[2rem] p-1 bg-gradient-to-tr from-${story.gradient_from} to-${story.gradient_to} shadow-lg shadow-${story.shadow_color} group-active:scale-95 transition-all">
+                        <div class="w-full h-full rounded-[1.8rem] border-4 border-zinc-50 dark:border-zinc-950 overflow-hidden bg-zinc-200 dark:bg-zinc-800">
+                            <img src="${story.image_url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-zinc-500 dark:text-zinc-400">${story.title}</span>
+                </div>
+            `).join('');
         }
 
         function renderFeaturedArticle(article) {
@@ -280,13 +373,13 @@
             articles.forEach(article => {
                 const imgUrl = article.image_url || 'https://images.unsplash.com/photo-1518349619113-03114f06ac3a?w=100';
                 const articleHTML = `
-                    <div onclick="window.location.href='article.html?slug=${article.slug}'" class="flex items-center gap-4 p-3 bg-zinc-50 dark:bg-zinc-800/30 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 rounded-2xl transition-all cursor-pointer group">
+                    <div onclick="window.location.href='article.html?slug=${article.slug}'" class="flex items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-800/30 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 rounded-xl transition-all cursor-pointer group">
                         <div class="w-16 h-16 rounded-xl bg-zinc-200 dark:bg-zinc-800 overflow-hidden flex-shrink-0">
                             <img src="${imgUrl}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
                         <div class="flex-1">
                             <p class="font-bold text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">${article.title}</p>
-                            <p class="text-xs text-zinc-500 mt-1.5 font-medium">${article.category || 'সাধারণ'}</p>
+                            <p class="text-xs text-zinc-500 mt-1 font-medium">${article.category || 'সাধারণ'}</p>
                         </div>
                     </div>
                 `;
@@ -312,6 +405,8 @@
 
         // Initialize Fetch
         fetchArticles();
+        fetchStories();
+        fetchDidYouKnow();
     </script>
 </body>
 </html>

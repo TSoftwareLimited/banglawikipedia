@@ -20,7 +20,7 @@
         }
     </script>
     <style>
-        .glass { @apply bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-zinc-200 dark:border-white/5; }
+        .glass { @apply bg-white/70 dark:bg-zinc-950/70 backdrop-blur-3xl border-zinc-200/50 dark:border-white/10; }
         .skeleton { @apply animate-pulse bg-zinc-200 dark:bg-zinc-800 rounded-xl; }
     </style>
 </head>
@@ -60,7 +60,7 @@
         </div>
 
         <article id="content-area" class="hidden space-y-10">
-            <div class="relative rounded-[2.5rem] overflow-hidden shadow-2xl h-64 sm:h-[450px]">
+            <div class="relative rounded-3xl overflow-hidden shadow-2xl h-64 sm:h-[450px]">
                 <img id="article-image" src="" class="w-full h-full object-cover">
                 <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent"></div>
             </div>
@@ -86,7 +86,7 @@
                 <p class="text-zinc-500">এই নিবন্ধটি উন্নত করার বিষয়ে আপনার মতামত দিন।</p>
             </div>
 
-            <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-[2rem] p-8 space-y-6 backdrop-blur-md">
+            <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-3xl p-6 space-y-4 backdrop-blur-md">
                 <input type="text" id="comment-author" placeholder="আপনার নাম" class="w-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
                 <textarea id="comment-body" placeholder="আপনার মন্তব্য লিখুন..." rows="4" class="w-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"></textarea>
                 <button id="submit-comment" class="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-500/20">মন্তব্য জমা দিন</button>
@@ -153,8 +153,8 @@
                 }
 
                 list.innerHTML = data.map(c => `
-                    <div class="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm">
-                        <div class="flex justify-between items-center mb-3">
+                    <div class="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm">
+                        <div class="flex justify-between items-center mb-2">
                             <span class="font-bold text-blue-600 dark:text-blue-400">${c.author}</span>
                             <span class="text-xs text-zinc-500">${new Date(c.created_at).toLocaleDateString('bn-BD')}</span>
                         </div>
