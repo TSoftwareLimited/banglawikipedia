@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>নিবন্ধ -. উইকিপিডিয়া.বাংলা</title>
+    <title>নিবন্ধ - উইকিপিডিয়া.বাংলা</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,6 +37,18 @@
     </nav>
 
     <main class="max-w-4xl mx-auto p-6 lg:p-12 pb-24">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-0">
+            <div class="flex items-center gap-1">
+                <button id="tab-article" class="px-4 py-2 text-sm font-bold border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 transition-all">নিবন্ধ</button>
+                <button id="tab-talk" class="px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors">আলাপ</button>
+            </div>
+            <div class="flex items-center gap-1 mb-2 sm:mb-0">
+                <button class="px-3 py-1.5 text-xs font-bold bg-zinc-100 dark:bg-zinc-900 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">পড়ুন</button>
+                <button class="px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors">সম্পাদনা</button>
+                <button class="px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors">ইতিহাস</button>
+            </div>
+        </div>
+
         <div id="loading" class="space-y-8">
             <div class="h-64 sm:h-[400px] skeleton w-full"></div>
             <div class="h-14 skeleton w-3/4"></div>
@@ -68,6 +80,21 @@
             </div>
         </article>
 
+        <section id="talk-area" class="hidden space-y-10 animate-in fade-in duration-500">
+            <div class="space-y-4">
+                <h2 class="text-3xl font-black text-zinc-900 dark:text-white">আলোচনা পাতা</h2>
+                <p class="text-zinc-500">এই নিবন্ধটি উন্নত করার বিষয়ে আপনার মতামত দিন।</p>
+            </div>
+
+            <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-[2rem] p-8 space-y-6 backdrop-blur-md">
+                <input type="text" id="comment-author" placeholder="আপনার নাম" class="w-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
+                <textarea id="comment-body" placeholder="আপনার মন্তব্য লিখুন..." rows="4" class="w-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"></textarea>
+                <button id="submit-comment" class="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-500/20">মন্তব্য জমা দিন</button>
+            </div>
+
+            <div id="comments-list" class="space-y-6 pt-6"></div>
+        </section>
+
         <div id="error-area" class="hidden text-center py-20 space-y-6">
             <h2 class="text-3xl font-bold">নিবন্ধটি খুঁজে পাওয়া যায়নি</h2>
             <p class="text-zinc-500">সম্ভবত আইডি ভুল বা নিবন্ধটি মুছে ফেলা হয়েছে।</p>
@@ -84,6 +111,81 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const slug = urlParams.get('slug');
+
+        // Tab Switching Logic
+        const tabArticle = document.getElementById('tab-article');
+        const tabTalk = document.getElementById('tab-talk');
+        const contentArea = document.getElementById('content-area');
+        const talkArea = document.getElementById('talk-area');
+
+        tabArticle.onclick = () => {
+            tabArticle.className = 'px-4 py-2 text-sm font-bold border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 transition-all';
+            tabTalk.className = 'px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors';
+            contentArea.classList.remove('hidden');
+            talkArea.classList.add('hidden');
+        };
+
+        tabTalk.onclick = () => {
+            tabTalk.className = 'px-4 py-2 text-sm font-bold border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 transition-all';
+            tabArticle.className = 'px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors';
+            contentArea.classList.add('hidden');
+            talkArea.classList.remove('hidden');
+            fetchComments();
+        };
+
+        // Talk Section Functions
+        async function fetchComments() {
+            const list = document.getElementById('comments-list');
+            list.innerHTML = '<div class="skeleton h-24 w-full"></div>';
+            
+            try {
+                const { data, error } = await supabase
+                    .from('comments')
+                    .select('*')
+                    .eq('article_slug', slug)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    list.innerHTML = '<p class="text-center py-10 text-zinc-500">এখনও কোনো আলোচনা শুরু হয়নি। প্রথম মন্তব্যটি আপনি করুন!</p>';
+                    return;
+                }
+
+                list.innerHTML = data.map(c => `
+                    <div class="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-bold text-blue-600 dark:text-blue-400">${c.author}</span>
+                            <span class="text-xs text-zinc-500">${new Date(c.created_at).toLocaleDateString('bn-BD')}</span>
+                        </div>
+                        <p class="text-zinc-700 dark:text-zinc-300 leading-relaxed">${c.content}</p>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = '<p class="text-red-500">মন্তব্য লোড করতে সমস্যা হয়েছে।</p>';
+            }
+        }
+
+        document.getElementById('submit-comment').onclick = async () => {
+            const author = document.getElementById('comment-author').value;
+            const content = document.getElementById('comment-body').value;
+
+            if (!author || !content) {
+                alert('দয়া করে নাম এবং মন্তব্য উভয়ই লিখুন।');
+                return;
+            }
+
+            const { error } = await supabase
+                .from('comments')
+                .insert([{ article_slug: slug, author, content }]);
+
+            if (error) {
+                alert('মন্তব্য পোস্ট করা যায়নি।');
+            } else {
+                document.getElementById('comment-body').value = '';
+                fetchComments();
+            }
+        };
 
         async function fetchArticle() {
             if (!slug) {
