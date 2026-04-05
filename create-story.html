@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>নতুন স্টোরি - উইকিপিডিয়া.বাংলা</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['"Hind Siliguri"', 'sans-serif'] } } } }
+    </script>
+    <style>
+        .glass { @apply bg-white/70 dark:bg-zinc-950/70 backdrop-blur-3xl border-zinc-200/50 dark:border-white/10; }
+    </style>
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-300 font-sans antialiased min-h-screen">
+
+    <nav class="sticky top-0 z-50 h-16 glass flex items-center px-4 lg:px-6 justify-between transition-colors duration-300 border-b border-zinc-200 dark:border-zinc-800">
+        <div onclick="window.location.href='index.html'" class="flex items-center gap-3 cursor-pointer">
+            <div class="w-9 h-9 bg-zinc-900 dark:bg-white rounded-xl flex items-center justify-center transition-colors">
+                <span class="text-lg text-white dark:text-black font-bold">উ</span>
+            </div>
+            <span class="font-bold text-lg text-zinc-900 dark:text-white">উইকিপিডিয়া<span class="text-zinc-500">.বাংলা</span></span>
+        </div>
+        <button onclick="window.location.href='index.html'" class="px-4 py-2 text-sm font-medium bg-zinc-100 dark:bg-zinc-900 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">ফিরে যান</button>
+    </nav>
+
+    <main class="max-w-2xl mx-auto p-6 lg:p-12">
+        <div class="space-y-2 mb-10">
+            <h1 class="text-4xl font-black text-zinc-900 dark:text-white">নতুন স্টোরি যোগ করুন</h1>
+            <p class="text-zinc-500">আপনার স্টোরিটি সুন্দরভাবে সাজিয়ে পোস্ট করুন।</p>
+        </div>
+
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-8 space-y-6 shadow-sm">
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">স্টোরির শিরোনাম</label>
+                <input type="text" id="story-title" placeholder="সংক্ষিপ্ত এবং আকর্ষণীয় শিরোনাম" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">স্টোরি ইমেজ</label>
+                <div id="image-upload-area" class="relative group cursor-pointer h-64 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex flex-col items-center justify-center transition-all hover:border-blue-500/50">
+                    <input type="file" id="story-image" accept="image/*" class="hidden">
+                    <div id="upload-placeholder" class="flex flex-col items-center gap-2 text-zinc-400">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="text-sm font-bold">ইমেজ সিলেক্ট করুন</span>
+                    </div>
+                    <div id="image-preview" class="absolute inset-0 hidden">
+                        <img src="" class="w-full h-full object-cover rounded-3xl">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-3xl">
+                            <span class="text-white font-bold text-sm">পরিবর্তন করুন</span>
+                        </div>
+                    </div>
+                    <div id="upload-progress-overlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center rounded-3xl z-10">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span id="progress-text" class="text-white font-black text-xl">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">বিস্তারিত (Description)</label>
+                <textarea id="story-description" rows="3" placeholder="স্টোরি সম্পর্কে অল্প কিছু লিখুন..." class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"></textarea>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">লিঙ্ক (ঐচ্ছিক)</label>
+                <input type="url" id="story-url" placeholder="https://example.com" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">থিম কালার নির্বাচন করুন</label>
+                <div id="gradient-selector" class="flex flex-wrap gap-3 px-1"></div>
+            </div>
+
+            <button id="submit-story" class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all text-lg">
+                স্টোরি পোস্ট করুন
+            </button>
+        </div>
+    </main>
+
+    <div id="toast-container" class="fixed bottom-8 left-1/2 -translate-x-1/2 flex flex-col gap-3 z-[300] w-full max-w-md px-4 pointer-events-none"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+        const supabaseUrl = 'https://ejawztjfekggwtlyymym.supabase.co';
+        const supabaseKey = 'sb_publishable_qzyHuTPdiitg0FZE6XCA5g_orpm2TsH';
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl glass border pointer-events-auto transition-all duration-300`;
+            toast.innerHTML = `<p class="font-bold text-sm ${type === 'error' ? 'text-red-500' : 'text-blue-500'}">${message}</p>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        const user = JSON.parse(localStorage.getItem('wiki_user'));
+        if (!user) window.location.href = 'index.html';
+
+        const imageArea = document.getElementById('image-upload-area');
+        const imageInput = document.getElementById('story-image');
+        const imagePreview = document.getElementById('image-preview');
+        const placeholder = document.getElementById('upload-placeholder');
+
+        const gradients = [
+            { from: 'blue-500', to: 'indigo-600' },
+            { from: 'purple-500', to: 'pink-600' },
+            { from: 'emerald-500', to: 'teal-600' },
+            { from: 'orange-500', to: 'red-600' },
+            { from: 'amber-500', to: 'orange-600' },
+            { from: 'cyan-500', to: 'blue-600' }
+        ];
+        let selectedGradient = gradients[0];
+
+        window.selectGradient = (index) => {
+            selectedGradient = gradients[index];
+            renderGradientOptions();
+        };
+
+        function renderGradientOptions() {
+            const container = document.getElementById('gradient-selector');
+            container.innerHTML = gradients.map((g, i) => `
+                <div onclick="selectGradient(${i})" 
+                     class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-${g.from} to-${g.to} cursor-pointer transition-all border-4 ${selectedGradient === g ? 'border-blue-600 scale-110 shadow-lg' : 'border-transparent hover:scale-105'}">
+                </div>
+            `).join('');
+        }
+        renderGradientOptions();
+
+        imageArea.onclick = () => imageInput.click();
+
+        imageInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagePreview.querySelector('img').src = event.target.result;
+                    imagePreview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        async function uploadImage(file) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+                formData.append('key', 'a861b1b999d131e58bda7029ab6eee29');
+                formData.append('image', file);
+
+                const overlay = document.getElementById('upload-progress-overlay');
+                const text = document.getElementById('progress-text');
+                overlay.classList.remove('hidden');
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        text.textContent = percent + '%';
+                    }
+                };
+
+                xhr.onload = () => {
+                    const resp = JSON.parse(xhr.responseText);
+                    if (resp.success) resolve(resp.data.url);
+                    else reject(new Error('ইমেজ আপলোড ব্যর্থ হয়েছে'));
+                };
+                xhr.onerror = () => reject(new Error('নেটওয়ার্ক ত্রুটি'));
+                xhr.open('POST', 'https://api.imgbb.com/1/upload');
+                xhr.send(formData);
+            });
+        }
+
+        document.getElementById('submit-story').onclick = async () => {
+            const title = document.getElementById('story-title').value.trim();
+            const description = document.getElementById('story-description').value.trim();
+            const url = document.getElementById('story-url').value.trim();
+            const file = imageInput.files[0];
+
+            if (!title || !file) return showToast('শিরোনাম এবং ইমেজ আবশ্যক।', 'error');
+
+            const btn = document.getElementById('submit-story');
+            btn.disabled = true;
+            btn.textContent = 'প্রসেসিং...';
+
+            try {
+                const imageUrl = await uploadImage(file);
+                const { error } = await supabase.from('stories').insert([{ 
+                    title, description, url, image_url: imageUrl,
+                    author: user.full_name, 
+                    user_id: user.id,
+                    gradient_from: selectedGradient.from,
+                    gradient_to: selectedGradient.to, views: 0
+                }]);
+
+                if (error) throw error;
+                showToast('স্টোরি সফলভাবে পোস্ট হয়েছে!', 'success');
+                setTimeout(() => window.location.href = 'index.html', 1500);
+            } catch (err) {
+                showToast('ত্রুটি: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'স্টোরি পোস্ট করুন';
+                document.getElementById('upload-progress-overlay').classList.add('hidden');
+            }
+        };
+    </script>
+</body>
+</html>

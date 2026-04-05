@@ -28,10 +28,29 @@
         ::-webkit-scrollbar { width: 6px; }
         .dark ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
-        .skeleton { @apply animate-pulse bg-zinc-200 dark:bg-zinc-800 rounded-xl; }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .skeleton { 
+            @apply rounded-xl;
+            background: linear-gradient(90deg, #e4e4e7 25%, #f4f4f5 50%, #e4e4e7 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+        }
+        .dark .skeleton {
+            background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+            background-size: 200% 100%;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .progress-bar { height: 3px; width: 0%; transition: width 0.1s ease; }
+        @keyframes heart-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.4); }
+            100% { transform: scale(1); }
+        }
+        .heart-bounce { animation: heart-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     </style>
 </head>
 <body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-300 font-sans antialiased pb-24 lg:pb-0 transition-colors duration-300">
@@ -57,12 +76,102 @@
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg class="h-4 w-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
-            <input type="text" placeholder="কী খুঁজতে চান?..." class="w-full bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all text-zinc-900 dark:text-zinc-100 placeholder-zinc-500">
+            <input type="text" id="globalSearchInput" placeholder="কী খুঁজতে চান?..." class="w-full bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all text-zinc-900 dark:text-zinc-100 placeholder-zinc-500">
         </div>
 
-        <button id="themeToggle" class="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-blue-500 transition-colors">
-            <svg id="themeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-        </button>
+        <!-- Notification Bell -->
+        <div class="relative ml-2">
+            <button id="notifBtn" class="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-blue-500 transition-colors relative">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                <span id="notifBadge" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+            </button>
+            
+            <!-- Notifications Dropdown -->
+            <div id="notifDropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible translate-y-2 scale-95 origin-top-right transition-all duration-200 z-[70] py-2 overflow-hidden">
+                <div class="px-4 py-2 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
+                    <span class="font-bold text-sm">নোটিফিকেশন</span>
+                    <button id="markAllRead" class="text-[10px] text-blue-600 font-bold uppercase">সব পঠিত</button>
+                </div>
+                <div id="notifList" class="max-h-96 overflow-y-auto">
+                    <p class="text-center py-8 text-zinc-500 text-xs">লোড হচ্ছে...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Only: Create and Profile Buttons -->
+        <div class="hidden lg:flex items-center gap-2 ml-2">
+            <!-- Create Dropdown -->
+            <div class="relative group">
+                <button id="desktopCreateBtn" title="তৈরি করুন" class="p-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                
+                <!-- Dropdown Menu -->
+                <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible translate-y-2 scale-95 origin-top-right group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-200 z-[70] py-2 overflow-hidden">
+                    <a href="create-article.html" class="flex items-center gap-3 px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        নিবন্ধ তৈরি করুন
+                    </a>
+                    <a href="create-story.html" class="flex items-center gap-3 px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors border-t border-zinc-100 dark:border-zinc-800/50">
+                        <div class="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        স্টোরি যোগ করুন
+                    </a>
+                    <a href="create-discussion.html" class="flex items-center gap-3 px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors border-t border-zinc-100 dark:border-zinc-800/50">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        প্রশ্ন জিজ্ঞাসা করুন
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Profile Dropdown -->
+            <div class="relative group">
+                <button id="desktopProfileBtn" title="প্রোফাইল" class="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-blue-500 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                </button>
+                
+                <!-- Dropdown Menu -->
+                <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible translate-y-2 scale-95 origin-top-right group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-200 z-[70] py-2 overflow-hidden">
+                    <div id="dropdownUserInfo" class="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 mb-1 hidden flex items-center gap-3">
+                        <div id="dropdownUserAvatar" class="flex-shrink-0"></div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-zinc-500 font-bold uppercase tracking-widest">ব্যবহারকারী</p>
+                            <p id="dropdownUserName" class="text-sm font-black text-zinc-900 dark:text-white truncate"></p>
+                        </div>
+                    </div>
+                    <a href="profile.html" class="dropdown-item flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        প্রোফাইল
+                    </a>
+                    <a href="javascript:void(0)" class="dropdown-item flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        সেটিংস
+                    </a>
+                    <button id="themeToggle" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors text-left">
+                        <svg id="themeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        থিম পরিবর্তন
+                    </button>
+                    <a href="javascript:void(0)" class="dropdown-item flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+                        আমার নিবন্ধ
+                    </a>
+                    <a href="javascript:void(0)" class="dropdown-item flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        ড্রাফট
+                    </a>
+                    <a href="javascript:void(0)" class="dropdown-item flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                        ওয়ালেট
+                    </a>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <div class="max-w-[1600px] mx-auto flex">
@@ -127,6 +236,24 @@
                 </div>
             </div>
 
+            <!-- Popular Articles Section -->
+            <section id="popular-section" class="mb-10">
+                <div class="flex items-center justify-between mb-6 px-1">
+                    <h2 class="text-2xl font-black text-zinc-900 dark:text-white flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                        </div>
+                        জনপ্রিয় নিবন্ধ
+                    </h2>
+                </div>
+                <div id="popular-articles-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="h-44 skeleton"></div>
+                    <div class="h-44 skeleton"></div>
+                    <div class="h-44 skeleton"></div>
+                    <div class="h-44 skeleton"></div>
+                </div>
+            </section>
+
             <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
                 <div class="xl:col-span-8 space-y-8">
                     <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-3xl overflow-hidden shadow-sm backdrop-blur-md">
@@ -190,55 +317,11 @@
                     <button id="new-topic-btn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20">নতুন আলোচনা শুরু করুন</button>
                 </div>
 
-                <!-- New Topic Form -->
-                <div id="topic-form" class="hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4 shadow-sm">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-lg">নতুন আলোচনা</h3>
-                        <button id="close-topic-form" class="text-zinc-500 hover:text-zinc-900 dark:hover:text-white text-sm font-bold">বন্ধ করুন</button>
-                    </div>
-                    <input type="text" id="topic-author" placeholder="আপনার নাম" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-                    <input type="text" id="topic-title" placeholder="আলোচনার শিরোনাম (প্রশ্ন)" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-                    <textarea id="topic-content" placeholder="বিস্তারিত লিখুন..." rows="4" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40"></textarea>
-                    <button id="submit-topic" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg active:scale-[0.98] transition-all">পোস্ট করুন</button>
-                </div>
-
                 <!-- Topics List -->
                 <div id="discussions-list" class="space-y-4">
                     <!-- Loading Skeletons -->
                     <div class="h-24 skeleton w-full"></div>
                     <div class="h-24 skeleton w-full"></div>
-                </div>
-
-                <!-- Discussion Detail -->
-                <div id="discussion-detail" class="hidden space-y-6">
-                    <button id="back-to-list" class="flex items-center gap-2 text-zinc-500 hover:text-blue-600 transition-colors font-bold group">
-                        <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                        তালিকায় ফিরে যান
-                    </button>
-                    
-                    <div id="active-topic-header" class="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 rounded-3xl p-6 lg:p-8 space-y-4">
-                        <div class="flex justify-between items-start gap-4">
-                            <h2 id="active-title" class="text-2xl lg:text-3xl font-black text-zinc-900 dark:text-white leading-tight"></h2>
-                            <span id="active-date" class="text-xs text-zinc-500 font-medium whitespace-nowrap pt-1"></span>
-                        </div>
-                        <p id="active-author" class="text-sm font-bold text-blue-600 dark:text-blue-400"></p>
-                        <p id="active-content" class="text-lg lg:text-xl text-zinc-700 dark:text-zinc-300 leading-relaxed"></p>
-                    </div>
-
-                    <div class="space-y-4">
-                        <h3 class="text-xl font-bold flex items-center gap-2 text-zinc-900 dark:text-white">
-                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                            উত্তরসমূহ
-                        </h3>
-                        <div id="replies-list" class="space-y-4"></div>
-                    </div>
-
-                    <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/60 rounded-3xl p-6 space-y-4 backdrop-blur-md">
-                        <h4 class="font-bold text-zinc-900 dark:text-white">আপনার উত্তর দিন</h4>
-                        <input type="text" id="reply-author" placeholder="আপনার নাম" class="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
-                        <textarea id="reply-content" placeholder="আপনার উত্তর লিখুন..." rows="3" class="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40"></textarea>
-                        <button id="submit-reply" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all">উত্তর জমা দিন</button>
-                    </div>
                 </div>
             </div>
         </main>
@@ -289,8 +372,8 @@
                     </div>
                     <div class="space-y-4">
                         <div class="space-y-2">
-                            <label class="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">ফোন নম্বর</label>
-                            <input type="number" id="signin-phone" placeholder="017XXXXXXXX" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
+                            <label class="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">ইমেইল ঠিকানা</label>
+                            <input type="email" id="signin-email" placeholder="example@mail.com" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all">
                         </div>
                         <div class="space-y-2">
                             <label class="text-xs font-bold uppercase tracking-wider text-zinc-400 px-1">পাসওয়ার্ড</label>
@@ -338,6 +421,61 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Story Modal -->
+    <div id="storyModal" class="fixed inset-0 z-[400] hidden flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+        <button onclick="closeStory()" class="absolute top-6 right-6 z-[410] p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all active:scale-90">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        
+        <div class="relative w-full max-w-lg h-[90vh] mx-auto overflow-hidden rounded-[2.5rem] shadow-2xl">
+            <!-- Navigation Tap Areas -->
+            <div class="absolute inset-y-0 left-0 w-1/4 z-[415] cursor-pointer" onclick="prevStory()"></div>
+            <div class="absolute inset-y-0 right-0 w-1/4 z-[415] cursor-pointer" onclick="nextStory()"></div>
+
+            <!-- Story Timer Progress Bar -->
+            <div class="absolute top-0 left-0 w-full z-[420] p-4 flex gap-1">
+                <div class="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
+                    <div id="storyProgress" class="h-full bg-white w-0 transition-none"></div>
+                </div>
+            </div>
+
+            <!-- Author Profile Info Overlay -->
+            <div class="absolute top-10 left-6 z-[420] flex items-center gap-3">
+                <div id="storyAuthorAvatar"></div>
+                <div class="text-white drop-shadow-lg">
+                    <p id="storyAuthorName" class="font-black text-sm tracking-wide"></p>
+                    <p id="storyMeta" class="text-[10px] font-bold opacity-80 uppercase tracking-tighter"></p>
+                </div>
+            </div>
+
+            <img id="storyModalImage" src="" class="w-full h-full object-cover">
+            
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 p-8 flex flex-col justify-end">
+                <div class="space-y-4 translate-y-4 animate-in slide-in-from-bottom-8 duration-500 fill-mode-forwards">
+                    <h2 id="storyModalTitle" class="text-3xl font-black text-white leading-tight"></h2>
+                    <p id="storyModalText" class="text-white/70 font-medium line-clamp-3"></p>
+                    
+                    <div id="storyModalActions" class="flex gap-4 pt-4 items-center">
+                        <button id="storyLikeBtn" onclick="toggleStoryReaction()" class="p-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl backdrop-blur-md transition-all active:scale-95 border border-white/10 flex items-center gap-2 group/like">
+                            <svg class="w-6 h-6 transition-transform group-active/like:scale-125" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                            <span id="storyLikeCount" class="font-bold text-sm">0</span>
+                        </button>
+                        <a id="storyModalReadMore" href="#" target="_blank" class="hidden flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-center shadow-lg shadow-blue-500/20 transition-all active:scale-95">আরও পড়ুন</a>
+                        <button id="storyModalViewMore" class="hidden flex-1 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl text-center backdrop-blur-md transition-all active:scale-95 border border-white/10">বিস্তারিত দেখুন</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Navigation Arrows -->
+        <button onclick="prevStory()" class="hidden md:flex absolute left-10 top-1/2 -translate-y-1/2 z-[410] p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all active:scale-90">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button onclick="nextStory()" class="hidden md:flex absolute right-10 top-1/2 -translate-y-1/2 z-[410] p-4 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all active:scale-90">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
     </div>
 
     <script>
@@ -397,6 +535,58 @@
                 : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>';
         });
 
+        // Notifications UI Logic
+        const notifBtn = document.getElementById('notifBtn');
+        const notifDropdown = document.getElementById('notifDropdown');
+        if (notifBtn) {
+            notifBtn.onclick = (e) => {
+                e.stopPropagation();
+                notifDropdown.classList.toggle('opacity-0');
+                notifDropdown.classList.toggle('invisible');
+                notifDropdown.classList.toggle('translate-y-0');
+                notifDropdown.classList.toggle('translate-y-2');
+                notifDropdown.classList.toggle('scale-100');
+                notifDropdown.classList.toggle('scale-95');
+                if (!notifDropdown.classList.contains('invisible')) fetchNotifications();
+            };
+        }
+        document.addEventListener('click', () => {
+            if (notifDropdown) {
+                notifDropdown.classList.add('opacity-0', 'invisible', 'translate-y-2', 'scale-95');
+                notifDropdown.classList.remove('translate-y-0', 'scale-100');
+            }
+        });
+
+        async function fetchNotifications() {
+            const user = JSON.parse(localStorage.getItem('wiki_user'));
+            if (!user) return;
+            const { data, error } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10);
+            if (error) return;
+            
+            const list = document.getElementById('notifList');
+            const badge = document.getElementById('notifBadge');
+            const unreadCount = data.filter(n => !n.is_read).length;
+            badge.classList.toggle('hidden', unreadCount === 0);
+
+            if (data.length === 0) {
+                list.innerHTML = '<p class="text-center py-8 text-zinc-500 text-xs">কোনো নোটিফিকেশন নেই</p>';
+                return;
+            }
+
+            list.innerHTML = data.map(n => {
+                let msg = n.type === 'story_like' ? `<b>${n.actor_name}</b> আপনার স্টোরি পছন্দ করেছেন` : `<b>${n.actor_name}</b> আপনার আলোচনায় উত্তর দিয়েছেন`;
+                let link = n.type === 'story_like' ? 'index.html' : `discuss.html?id=${n.target_id}`;
+                return `
+                    <a href="${link}" class="block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors border-b border-zinc-100 dark:border-zinc-800/50 ${n.is_read ? 'opacity-60' : ''}">
+                        <p class="text-xs text-zinc-700 dark:text-zinc-300 leading-tight">${msg}: "${n.target_title}"</p>
+                        <span class="text-[10px] text-zinc-500 mt-1 block">${new Date(n.created_at).toLocaleDateString('bn-BD')}</span>
+                    </a>
+                `;
+            }).join('');
+        }
+        setInterval(fetchNotifications, 30000); // Auto refresh every 30s
+        fetchNotifications();
+
         // Mobile Menu Toggle
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const sidebar = document.getElementById('sidebar');
@@ -411,6 +601,20 @@
         mobileMenuBtn.addEventListener('click', toggleSidebar);
         backdrop.addEventListener('click', toggleSidebar);
 
+        // Global function placeholders for mobile/HTML access
+        window.openStory = (index) => {
+            if (typeof window.triggerOpenStory === 'function') window.triggerOpenStory(index);
+        };
+        window.closeStory = () => {
+            if (typeof window.triggerCloseStory === 'function') window.triggerCloseStory();
+        };
+        window.nextStory = () => {
+            if (typeof window.triggerNextStory === 'function') window.triggerNextStory();
+        };
+        window.prevStory = () => {
+            if (typeof window.triggerPrevStory === 'function') window.triggerPrevStory();
+        };
+
         // Auth Modal Logic
         const authModal = document.getElementById('authModal');
         const loginBtn = document.getElementById('loginBtn');
@@ -423,6 +627,11 @@
         const switchToSignIn = document.getElementById('switchToSignIn');
 
         function openModal() {
+            const user = JSON.parse(localStorage.getItem('wiki_user'));
+            if (user) {
+                window.location.href = 'profile.html';
+                return;
+            }
             authModal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
         }
@@ -434,6 +643,7 @@
 
         loginBtn.addEventListener('click', openModal);
         mobileProfileBtn.addEventListener('click', openModal);
+        document.getElementById('desktopProfileBtn').addEventListener('click', openModal);
         closeModal.addEventListener('click', closeAuthModal);
         modalOverlay.addEventListener('click', closeAuthModal);
 
@@ -448,15 +658,17 @@
         });
 
         // Contribute Button Logic
-        document.getElementById('contributeBtn').onclick = () => {
+        const handleContribute = () => {
             const user = JSON.parse(localStorage.getItem('wiki_user'));
             if (user) {
                 window.location.href = 'create-article.html';
             } else {
-                showToast('নিবন্ধ তৈরি করতে অনুগ্রহ করে আগে প্রবেশ করুন।', 'info');
+                if(typeof showToast === 'function') showToast('নিবন্ধ তৈরি করতে অনুগ্রহ করে আগে প্রবেশ করুন।', 'info');
                 openModal();
             }
         };
+
+        document.getElementById('contributeBtn').onclick = handleContribute;
     </script>
 
     <script type="module">
@@ -478,6 +690,7 @@
             tabTalk.className = 'px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors transition-all';
             mainArea.classList.remove('hidden');
             talkArea.classList.add('hidden');
+            if (window.location.hash) history.replaceState(null, null, window.location.pathname + window.location.search);
         };
 
         tabTalk.onclick = () => {
@@ -486,15 +699,58 @@
             mainArea.classList.add('hidden');
             talkArea.classList.remove('hidden');
             fetchDiscussions();
+            if (window.location.hash !== '#discuss') window.location.hash = 'discuss';
         };
+
+        // Auto-open discussion section if #discuss is in the URL
+        if (window.location.hash === '#discuss') {
+            tabTalk.onclick();
+        }
+
+        function generateAvatarHtml(authorName) {
+            const initial = (authorName || '').charAt(0).toUpperCase() || 'U';
+            const colors = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-indigo-500', 'bg-rose-500'];
+            const hash = (authorName || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const color = colors[hash % colors.length];
+            return `<div class="w-10 h-10 rounded-full ${color} flex items-center justify-center text-white text-lg font-bold shadow-inner flex-shrink-0">${initial}</div>`;
+        }
+
+        function shareDiscussion(code) {
+            const url = `${window.location.origin}/discuss.html?c=${code}`;
+            if (navigator.share) {
+                navigator.share({ title: 'উইকিপিডিয়া.বাংলা আলোচনা', url }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(url).then(() => { showToast('লিঙ্ক কপি করা হয়েছে!', 'success'); });
+            }
+        }
+        window.shareDiscussion = shareDiscussion;
+
+        async function getReactionStats(targetId) {
+            const user = JSON.parse(localStorage.getItem('wiki_user'));
+            const { count, error: countError } = await supabase
+                .from('discussion_reactions')
+                .select('*', { count: 'exact', head: true })
+                .eq('target_id', targetId);
+            
+            let isLiked = false;
+            if (user) {
+                const { data, error: reactError } = await supabase
+                    .from('discussion_reactions')
+                    .select('id')
+                    .eq('target_id', targetId)
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                if (!reactError && data) isLiked = true;
+            }
+            
+            return { count: countError ? 0 : count, isLiked };
+        }
 
         // Discussion Logic
         let currentDiscussionId = null;
 
         async function fetchDiscussions() {
             const list = document.getElementById('discussions-list');
-            list.innerHTML = '<div class="h-24 skeleton w-full"></div><div class="h-24 skeleton w-full"></div>';
-            document.getElementById('discussion-detail').classList.add('hidden');
             list.classList.remove('hidden');
 
             try {
@@ -510,114 +766,137 @@
                     return;
                 }
 
-                list.innerHTML = data.map(d => `
-                    <div onclick="showDiscussion('${d.id}')" class="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-500 transition-all cursor-pointer group">
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-bold text-lg text-zinc-900 dark:text-white group-hover:text-blue-600 transition-colors">${d.title}</h3>
-                            <span class="text-xs text-zinc-500">${new Date(d.created_at).toLocaleDateString('bn-BD')}</span>
+                const items = await Promise.all(data.map(async d => {
+                    const stats = await getReactionStats(d.id);
+                    return `
+                    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden mb-4 transition-all">
+                        <div class="p-4 flex items-center gap-3">
+                            ${generateAvatarHtml(d.author)}
+                            <div>
+                                <p class="font-bold text-zinc-900 dark:text-white leading-tight hover:underline cursor-pointer">${d.author}</p>
+                                <p class="text-[10px] text-zinc-500 font-medium">${new Date(d.created_at).toLocaleDateString('bn-BD')} • <svg class="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> ${d.views || 0}</p>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2 text-sm">
-                            <span class="text-blue-600 dark:text-blue-400 font-bold">${d.author}</span>
-                            <span class="text-zinc-400">•</span>
-                            <span class="text-zinc-500 dark:text-zinc-400 line-clamp-1">${d.content}</span>
+                        <div onclick="showDiscussion('${d.short_code || d.id}')" class="px-4 pb-3 cursor-pointer group">
+                            <h3 class="font-bold text-zinc-900 dark:text-white mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors">${d.title}</h3>
+                            <p class="text-sm text-zinc-700 dark:text-zinc-300 line-clamp-3 leading-relaxed">${d.content}</p>
+                            ${d.image_urls && Array.isArray(d.image_urls) && d.image_urls.length > 0 ? (() => {
+                                const total = d.image_urls.length;
+                                const displayImages = d.image_urls.slice(0, 4);
+                                const gridCols = total === 1 ? 'grid-cols-1' : 'grid-cols-2';
+                                return `
+                                <div class="grid ${gridCols} gap-1 mt-3 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800">
+                                    ${displayImages.map((url, index) => {
+                                        const isLast = index === 3 && total > 4;
+                                        let spanClass = "h-44 sm:h-56";
+                                        if (total === 1) spanClass = "h-64 sm:h-96";
+                                        if (total === 3 && index === 0) spanClass = "col-span-2 h-48 sm:h-72";
+                                        return `
+                                        <div class="relative ${spanClass} overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                            <img src="${url}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-700" loading="lazy">
+                                            ${isLast ? `
+                                                <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+                                                    <span class="text-white text-2xl font-black">+${total - 3}</span>
+                                                </div>
+                                            ` : ''}
+                                        </div>`;
+                                    }).join('')}
+                                </div>`;
+                            })() : ''}
+                        </div>
+                        <div class="px-4 py-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-500">
+                            <div class="flex items-center gap-1">
+                                <div class="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center ring-1 ring-white dark:ring-zinc-900">
+                                    <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M4 21h1V8H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2zM20 8h-7l1.122-3.368A2 2 0 0 0 12.225 2H12L7 7.438V21h11l3.912-8.595L22 12v-2a2 2 0 0 0-2-2z"></path></svg>
+                                </div>
+                                <span id="react-count-${d.id}">${stats.count}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <button id="react-btn-${d.id}" onclick="toggleReaction('${d.id}')" class="flex items-center justify-center gap-2 py-3 text-sm font-bold ${stats.isLiked ? 'text-blue-600' : 'text-zinc-600 dark:text-zinc-400'} hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                <svg class="w-5 h-5 transition-transform active:scale-125" fill="${stats.isLiked ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg> পছন্দ
+                            </button>
+                            <button onclick="showDiscussion('${d.short_code || d.id}')" class="flex items-center justify-center gap-2 py-3 text-sm font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg> মন্তব্য
+                            </button>
+                            <button onclick="shareDiscussion('${d.short_code || d.id}')" class="flex items-center justify-center gap-2 py-3 text-sm font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.516 3.91M16 12a3 3 0 110-6 3 3 0 010 6zm0 0l-6.516-3.91"></path></svg> শেয়ার
+                            </button>
                         </div>
                     </div>
-                `).join('');
+                `;
+                }));
+                list.innerHTML = items.join('');
             } catch (err) {
+                console.error("Discussion fetch error:", err);
                 list.innerHTML = '<p class="text-red-500 text-center py-10">আলোচনা লোড করতে সমস্যা হয়েছে।</p>';
             }
         }
 
-        window.showDiscussion = async (id) => {
-            currentDiscussionId = id;
-            const list = document.getElementById('discussions-list');
-            const detail = document.getElementById('discussion-detail');
+        async function toggleReaction(targetId) {
+            const user = JSON.parse(localStorage.getItem('wiki_user'));
+            if (!user) return openModal();
             
-            list.classList.add('hidden');
-            detail.classList.remove('hidden');
-            
+            const btn = document.getElementById(`react-btn-${targetId}`);
+            const countEl = document.getElementById(`react-count-${targetId}`);
+            const isCurrentlyLiked = btn.classList.contains('text-blue-600');
+            const currentCount = parseInt(countEl.textContent);
+
+            // Trigger subtle heart animation
+            const svg = btn.querySelector('svg');
+            svg.classList.add('heart-bounce');
+            svg.addEventListener('animationend', () => svg.classList.remove('heart-bounce'), { once: true });
+
+            // Optimistic UI Update
+            if (isCurrentlyLiked) {
+                btn.classList.remove('text-blue-600');
+                btn.classList.add('text-zinc-600', 'dark:text-zinc-400');
+                btn.querySelector('svg').setAttribute('fill', 'none');
+                countEl.textContent = currentCount - 1;
+            } else {
+                btn.classList.add('text-blue-600');
+                btn.classList.remove('text-zinc-600', 'dark:text-zinc-400');
+                btn.querySelector('svg').setAttribute('fill', 'currentColor');
+                countEl.textContent = currentCount + 1;
+            }
+
             try {
-                const { data: topic, error } = await supabase
-                    .from('discussions')
+                const { data: existing, error: fetchError } = await supabase
+                    .from('discussion_reactions')
                     .select('*')
-                    .eq('id', id)
-                    .single();
+                    .eq('user_id', user.id)
+                    .eq('target_id', targetId)
+                    .maybeSingle();
 
-                if (error) throw error;
+                if (fetchError) throw fetchError;
 
-                document.getElementById('active-title').textContent = topic.title;
-                document.getElementById('active-author').textContent = `শুরু করেছেন: ${topic.author}`;
-                document.getElementById('active-content').textContent = topic.content;
-                document.getElementById('active-date').textContent = new Date(topic.created_at).toLocaleDateString('bn-BD');
-                
-                fetchReplies(id);
-            } catch (err) { console.error(err); }
-        };
-
-        async function fetchReplies(topicId) {
-            const list = document.getElementById('replies-list');
-            list.innerHTML = '<div class="h-16 skeleton w-full"></div>';
-            
-            try {
-                const { data, error } = await supabase
-                    .from('discussion_replies')
-                    .select('*')
-                    .eq('discussion_id', topicId)
-                    .order('created_at', { ascending: true });
-
-                if (error) throw error;
-                list.innerHTML = data.map(r => `
-                    <div class="p-5 bg-zinc-50 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-bold text-blue-600 dark:text-blue-400">${r.author}</span>
-                            <span class="text-xs text-zinc-500">${new Date(r.created_at).toLocaleDateString('bn-BD')}</span>
-                        </div>
-                        <p class="text-zinc-700 dark:text-zinc-300">${r.content}</p>
-                    </div>
-                `).join('') || '<p class="text-zinc-500 text-center py-4">কোনো উত্তর নেই।</p>';
-            } catch (err) { console.error(err); }
+                if (existing) {
+                    const { error: delError } = await supabase.from('discussion_reactions').delete().eq('id', existing.id);
+                    if (delError) throw delError;
+                } else {
+                    const { error: insError } = await supabase.from('discussion_reactions').insert([{ user_id: user.id, target_id: targetId }]);
+                    if (insError) throw insError;
+                }
+            } catch (err) {
+                console.error("Reaction toggle error:", err);
+                if (typeof showToast === 'function') showToast('পছন্দ আপডেট করতে সমস্যা হয়েছে।', 'error');
+            }
         }
+        window.toggleReaction = toggleReaction;
 
-        document.getElementById('submit-topic').onclick = async () => {
-            const author = document.getElementById('topic-author').value;
-            const title = document.getElementById('topic-title').value;
-            const content = document.getElementById('topic-content').value;
-
-            if (!author || !title || !content) return showToast('সবগুলো ঘর পূরণ করুন।', 'error');
-
-            const { error } = await supabase.from('discussions').insert([{ title, author, content }]);
-            if (!error) {
-                document.getElementById('topic-form').classList.add('hidden');
-                document.getElementById('topic-author').value = '';
-                document.getElementById('topic-title').value = '';
-                document.getElementById('topic-content').value = '';
-                fetchDiscussions();
-            }
-        };
-
-        document.getElementById('submit-reply').onclick = async () => {
-            const author = document.getElementById('reply-author').value;
-            const content = document.getElementById('reply-content').value;
-
-            if (!author || !content) return showToast('নাম এবং উত্তর লিখুন।', 'error');
-
-            const { error } = await supabase.from('discussion_replies').insert([{ 
-                discussion_id: currentDiscussionId, 
-                author, 
-                content 
-            }]);
-            if (!error) {
-                document.getElementById('reply-content').value = '';
-                fetchReplies(currentDiscussionId);
-            }
+        window.showDiscussion = (code) => {
+            window.location.href = `discuss.html?c=${code}`;
         };
 
         // UI Controls
-        document.getElementById('new-topic-btn').onclick = () => document.getElementById('topic-form').classList.toggle('hidden');
-        document.getElementById('close-topic-form').onclick = () => document.getElementById('topic-form').classList.add('hidden');
-        document.getElementById('back-to-list').onclick = () => {
-            document.getElementById('discussion-detail').classList.add('hidden');
-            document.getElementById('discussions-list').classList.remove('hidden');
+        document.getElementById('new-topic-btn').onclick = () => {
+            const user = JSON.parse(localStorage.getItem('wiki_user'));
+            if (!user) {
+                showToast('আলোচনা শুরু করতে অনুগ্রহ করে আগে প্রবেশ করুন।', 'info');
+                openModal();
+                return;
+            }
+            window.location.href = 'create-discussion.html';
         };
 
         // Auth Logic
@@ -625,6 +904,9 @@
             const user = JSON.parse(localStorage.getItem('wiki_user'));
             const loginBtn = document.getElementById('loginBtn');
             const mobileProfileBtn = document.getElementById('mobileProfileBtn');
+            const desktopProfileBtn = document.getElementById('desktopProfileBtn');
+            const dropdownUserInfo = document.getElementById('dropdownUserInfo');
+            const dropdownUserName = document.getElementById('dropdownUserName');
 
             if (user) {
                 loginBtn.innerHTML = `
@@ -636,7 +918,34 @@
                     localStorage.removeItem('wiki_user');
                     window.location.reload();
                 };
-                if (mobileProfileBtn) mobileProfileBtn.onclick = () => showToast('স্বাগতম, ' + user.full_name, 'success');
+                if (mobileProfileBtn) mobileProfileBtn.onclick = () => {
+                    window.location.href = 'profile.html';
+                };
+                
+                if (desktopProfileBtn) {
+                    desktopProfileBtn.classList.add('text-blue-600', 'dark:text-blue-400');
+                    desktopProfileBtn.onclick = () => {
+                        window.location.href = 'profile.html';
+                    };
+                }
+
+                if (dropdownUserInfo) {
+                    dropdownUserInfo.classList.remove('hidden');
+                    dropdownUserName.textContent = user.full_name;
+
+                    const avatarContainer = document.getElementById('dropdownUserAvatar');
+                    if (avatarContainer) {
+                        if (user.profile_pic_url) {
+                            avatarContainer.innerHTML = `<img src="${user.profile_pic_url}" class="w-10 h-10 rounded-xl object-cover shadow-inner">`;
+                        } else {
+                            const initial = (user.full_name || '').charAt(0).toUpperCase() || 'U';
+                            const colors = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-indigo-500', 'bg-rose-500'];
+                            const hash = (user.full_name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                            const color = colors[hash % colors.length];
+                            avatarContainer.innerHTML = `<div class="w-10 h-10 rounded-xl ${color} flex items-center justify-center text-white text-lg font-bold shadow-inner">${initial}</div>`;
+                        }
+                    }
+                }
             }
         }
 
@@ -649,33 +958,80 @@
 
             if (!fullName || !username || !phone || !email || !password) return showToast('সব তথ্য পূরণ করুন', 'error');
 
-            const { data, error } = await supabase.from('site_users').insert([{
-                full_name: fullName, username, phone_number: phone, email, password
+            // সরাসরি site_users টেবিলে ডাটা ইনসার্ট করা হচ্ছে
+            const { data: newUser, error: dbError } = await supabase.from('site_users').insert([{
+                full_name: fullName,
+                username: username,
+                email: email,
+                phone_number: phone,
+                password: password // সরাসরি পাসওয়ার্ড সেভ (নিরাপত্তার জন্য ভবিষ্যতে হ্যাশিং প্রয়োজন)
             }]).select().single();
 
-            if (error) return showToast('নিবন্ধন ব্যর্থ: ' + error.message, 'error');
-
-            localStorage.setItem('wiki_user', JSON.stringify(data));
-            closeAuthModal();
-            updateAuthUI();
-            showToast('নিবন্ধন সফল!', 'success');
+            if (dbError) {
+                if (dbError.code === '23505') return showToast('এই ইমেইল বা ইউজারনেম ইতিমধ্যে ব্যবহৃত হয়েছে।', 'error');
+                return showToast('নিবন্ধন ব্যর্থ: ' + dbError.message, 'error');
+            }
+            
+            localStorage.setItem('wiki_user', JSON.stringify(newUser));
+            showToast('নিবন্ধন সফল হয়েছে!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
         };
 
         document.getElementById('submit-signin').onclick = async () => {
-            const phone = document.getElementById('signin-phone').value;
-            const password = document.getElementById('signin-pass').value;
+            const identifier = document.getElementById('signin-email').value.trim(); // ইমেইল বা ইউজারনেম
+            const password = document.getElementById('signin-pass').value.trim();
 
-            const { data, error } = await supabase.from('site_users')
+            if(!identifier || !password) return showToast('সব তথ্য প্রদান করুন', 'error');
+
+            const btn = document.getElementById('submit-signin');
+            btn.disabled = true;
+            btn.textContent = 'প্রবেশ করা হচ্ছে...';
+
+            // সরাসরি site_users টেবিলে কুয়েরি চালানো হচ্ছে
+            const { data: profile, error: profileError } = await supabase
+                .from('site_users')
                 .select('*')
-                .eq('phone_number', phone)
+                .or(`email.eq.${identifier},username.eq.${identifier}`)
                 .eq('password', password)
-                .single();
+                .maybeSingle();
+            
+            btn.disabled = false;
+            btn.textContent = 'প্রবেশ করুন';
 
-            if (error || !data) return showToast('ভুল ফোন বা পাসওয়ার্ড', 'error');
+            if (profileError) {
+                console.error("Profile Fetch Error:", profileError);
+                return showToast('প্রোফাইল তথ্য লোড করতে সমস্যা হয়েছে।', 'error');
+            }
 
-            localStorage.setItem('wiki_user', JSON.stringify(data));
-            closeAuthModal();
-            updateAuthUI();
+            if (profile) {
+                localStorage.setItem('wiki_user', JSON.stringify(profile));
+                showToast('সফলভাবে প্রবেশ করেছেন!', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('ভুল ইমেইল/ইউজারনেম বা পাসওয়ার্ড।', 'error');
+            }
+        };
+
+        // Search Logic
+        const searchInput = document.getElementById('globalSearchInput');
+        searchInput.onkeypress = async (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (!query) return fetchArticles(); // Empty search resets to default
+
+                try {
+                    const { data, error } = await supabase
+                        .from('articles')
+                        .select('*')
+                        .ilike('title', `%${query}%`)
+                        .limit(10);
+
+                    if (error) throw error;
+                    renderSidebarArticles(data); // Re-use sidebar render for search results
+                    if (data.length > 0) renderFeaturedArticle(data[0]);
+                    else showToast('কোনো নিবন্ধ পাওয়া যায়নি', 'info');
+                } catch (err) { console.error("Search error:", err); }
+            }
         };
 
         updateAuthUI();
@@ -770,16 +1126,217 @@
             }
         }
 
+        let loadedStories = [];
+
         function renderStories(stories) {
+            loadedStories = stories;
             const container = document.getElementById('stories-container');
-            container.innerHTML = stories.map(story => `
-                <div onclick="if('${story.url || ''}') window.location.href='${story.url}'" class="flex-shrink-0 flex flex-col items-center gap-3 cursor-pointer group">
-                    <div class="w-28 h-28 rounded-[2rem] p-1 bg-gradient-to-tr from-${story.gradient_from} to-${story.gradient_to} shadow-lg shadow-${story.shadow_color} group-active:scale-95 transition-all">
+            container.innerHTML = stories.map((story, index) => `
+                <div onclick="openStory(${index})" class="flex-shrink-0 flex flex-col items-center gap-3 cursor-pointer group">
+                    <div class="w-28 h-28 rounded-[2rem] p-1 bg-gradient-to-tr ${story.gradient_from ? 'from-' + story.gradient_from : 'from-blue-500'} ${story.gradient_to ? 'to-' + story.gradient_to : 'to-indigo-600'} shadow-lg group-active:scale-95 transition-all">
                         <div class="w-full h-full rounded-[1.8rem] border-4 border-zinc-50 dark:border-zinc-950 overflow-hidden bg-zinc-200 dark:bg-zinc-800">
                             <img src="${story.image_url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
                     </div>
                     <span class="text-xs font-bold text-zinc-500 dark:text-zinc-400">${story.title}</span>
+                </div>
+            `).join('');
+        }
+
+        let storyTimer;
+        let storyProgressFrame;
+        let currentStoryIndex = 0;
+        let currentStoryId = null;
+
+        async function getStoryReactionStats(storyId) {
+            const user = JSON.parse(localStorage.getItem('wiki_user'));
+            const { count, error: countError } = await supabase
+                .from('story_reactions')
+                .select('*', { count: 'exact', head: true })
+                .eq('story_id', storyId);
+            
+            let isLiked = false;
+            if (user) {
+                const { data } = await supabase
+                    .from('story_reactions')
+                    .select('id')
+                    .eq('story_id', storyId)
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                if (data) isLiked = true;
+            }
+            return { count: countError ? 0 : count, isLiked };
+        }
+
+        window.toggleStoryReaction = async () => {
+            const user = JSON.parse(localStorage.getItem('wiki_user'));
+            if (!user) {
+                showToast('পছন্দ করতে অনুগ্রহ করে আগে প্রবেশ করুন।', 'info');
+                openModal();
+                return;
+            }
+
+            const btn = document.getElementById('storyLikeBtn');
+            const countEl = document.getElementById('storyLikeCount');
+            const isCurrentlyLiked = btn.classList.contains('text-rose-500');
+            const currentCount = parseInt(countEl.textContent);
+
+            // Optimistic Update
+            btn.classList.toggle('text-rose-500', !isCurrentlyLiked);
+            btn.querySelector('svg').setAttribute('fill', !isCurrentlyLiked ? 'currentColor' : 'none');
+            countEl.textContent = !isCurrentlyLiked ? currentCount + 1 : currentCount - 1;
+
+            try {
+                if (isCurrentlyLiked) {
+                    await supabase.from('story_reactions').delete().eq('story_id', currentStoryId).eq('user_id', user.id);
+                } else {
+                    await supabase.from('story_reactions').insert([{ story_id: currentStoryId, user_id: user.id }]);
+                    
+                    // Send Notification to Story Author
+                    const story = loadedStories[currentStoryIndex];
+                    if (story.user_id !== user.id) {
+                        await supabase.from('notifications').insert([{
+                            user_id: story.user_id,
+                            actor_name: user.full_name,
+                            type: 'story_like',
+                            target_id: story.id,
+                            target_title: story.title
+                        }]);
+                    }
+                }
+            } catch (err) {
+                console.error("Story reaction error:", err);
+                // Revert UI on error
+                window.openStory(currentStoryIndex);
+            }
+        };
+
+        window.nextStory = () => {
+            if (currentStoryIndex < loadedStories.length - 1) {
+                window.openStory(currentStoryIndex + 1);
+            } else {
+                window.closeStory();
+            }
+        };
+
+        window.prevStory = () => {
+            if (currentStoryIndex > 0) {
+                window.openStory(currentStoryIndex - 1);
+            }
+        };
+
+        window.openStory = (index) => {
+            currentStoryIndex = index;
+            const story = loadedStories[index];
+            if (!story) return;
+            currentStoryId = story.id;
+
+            const modal = document.getElementById('storyModal');
+            document.getElementById('storyModalImage').src = story.image_url;
+            document.getElementById('storyModalTitle').textContent = story.title;
+            document.getElementById('storyModalText').textContent = story.description || story.title;
+            
+            // প্রোফাইল তথ্য সেট করুন
+            const authorName = story.author || 'অজানা ব্যবহারকারী';
+            document.getElementById('storyAuthorAvatar').innerHTML = generateAvatarHtml(authorName);
+            document.getElementById('storyAuthorName').textContent = authorName;
+            
+            const dateStr = new Date(story.created_at).toLocaleDateString('bn-BD');
+            document.getElementById('storyMeta').textContent = `${dateStr} • ${story.views || 0} ভিউ`;
+
+            const readMore = document.getElementById('storyModalReadMore');
+            const viewMore = document.getElementById('storyModalViewMore');
+
+            if (story.url) {
+                readMore.href = story.url;
+                readMore.classList.remove('hidden');
+                viewMore.classList.remove('hidden');
+            } else {
+                readMore.classList.add('hidden');
+                viewMore.classList.add('hidden');
+            }
+
+            // রিয়্যাকশন ডাটা লোড করুন
+            getStoryReactionStats(story.id).then(stats => {
+                const btn = document.getElementById('storyLikeBtn');
+                const countEl = document.getElementById('storyLikeCount');
+                countEl.textContent = stats.count;
+                btn.classList.toggle('text-rose-500', stats.isLiked);
+                btn.querySelector('svg').setAttribute('fill', stats.isLiked ? 'currentColor' : 'none');
+            });
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            // ভিউ আপডেট করুন
+            supabase.rpc('increment_story_views', { row_id: story.id });
+            story.views = (story.views || 0) + 1;
+
+            // Reset and start timer
+            const progressBar = document.getElementById('storyProgress');
+            progressBar.style.width = '0%';
+            clearTimeout(storyTimer);
+            cancelAnimationFrame(storyProgressFrame);
+
+            const duration = 10000; // 10 seconds
+            let startTime = null;
+
+            function animate(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const elapsed = timestamp - startTime;
+                const progress = Math.min((elapsed / duration) * 100, 100);
+                progressBar.style.width = progress + '%';
+                if (elapsed < duration) {
+                    storyProgressFrame = requestAnimationFrame(animate);
+                }
+            }
+            storyProgressFrame = requestAnimationFrame(animate);
+            storyTimer = setTimeout(window.nextStory, duration);
+        };
+
+        window.closeStory = () => {
+            document.getElementById('storyModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            clearTimeout(storyTimer);
+            cancelAnimationFrame(storyProgressFrame);
+        };
+
+        async function fetchPopularArticles() {
+            try {
+                const { data, error } = await supabase
+                    .from('articles')
+                    .select('*')
+                    .order('views', { ascending: false })
+                    .limit(4);
+
+                if (error) throw error;
+                if (data) renderPopularArticles(data);
+            } catch (error) {
+                console.error('Popular Articles Error:', error.message);
+            }
+        }
+
+        function renderPopularArticles(articles) {
+            const container = document.getElementById('popular-articles-grid');
+            container.innerHTML = articles.map((article, index) => `
+                <div onclick="window.location.href='article.html?slug=${article.slug}'" class="group bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-300 cursor-pointer flex flex-col h-full border-b-4 border-transparent hover:border-orange-500 relative">
+                    ${index === 0 ? `
+                        <div class="absolute top-3 left-3 z-20 px-3 py-1.5 bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-xl shadow-orange-600/30 flex items-center gap-1.5 animate-bounce">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                            সেরা পঠিত
+                        </div>
+                    ` : ''}
+                    <div class="h-32 sm:h-40 bg-zinc-200 dark:bg-zinc-800 overflow-hidden relative">
+                        <img src="${article.image_url || 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400'}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy">
+                        <div class="absolute top-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[10px] text-white font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
+                            <svg class="w-3 h-3 text-orange-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.523 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                            ${article.views || 0}
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-2 flex-1 flex flex-col">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">${article.category || 'সাধারণ'}</span>
+                        <h3 class="font-bold text-base text-zinc-900 dark:text-white group-hover:text-orange-600 transition-colors line-clamp-2 leading-tight">${article.title}</h3>
+                    </div>
                 </div>
             `).join('');
         }
@@ -809,6 +1366,10 @@
                 categoryEl.textContent = article.category;
                 categoryEl.classList.remove('hidden');
             }
+            
+            // শিরোনামের নিচে ভিউ যোগ করার জন্য একটি ছোট এলিমেন্ট
+            const viewHtml = `<p class="text-zinc-400 text-xs font-bold uppercase tracking-wider mt-2">${article.views || 0} ভিউ</p>`;
+            titleEl.insertAdjacentHTML('afterend', viewHtml);
 
             if (article.image_url) {
                 imageEl.src = article.image_url;
@@ -832,7 +1393,7 @@
                         </div>
                         <div class="flex-1">
                             <p class="font-bold text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">${article.title}</p>
-                            <p class="text-xs text-zinc-500 mt-1 font-medium">${article.category || 'সাধারণ'}</p>
+                            <p class="text-xs text-zinc-500 mt-1 font-medium">${article.category || 'সাধারণ'} • ${article.views || 0} ভিউ</p>
                         </div>
                     </div>
                 `;
@@ -860,6 +1421,8 @@
         fetchArticles();
         fetchStories();
         fetchDidYouKnow();
+        fetchPopularArticles();
+        
     </script>
 </body>
 </html>

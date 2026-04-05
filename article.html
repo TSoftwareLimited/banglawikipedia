@@ -21,7 +21,20 @@
     </script>
     <style>
         .glass { @apply bg-white/70 dark:bg-zinc-950/70 backdrop-blur-3xl border-zinc-200/50 dark:border-white/10; }
-        .skeleton { @apply animate-pulse bg-zinc-200 dark:bg-zinc-800 rounded-xl; }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .skeleton { 
+            @apply rounded-xl;
+            background: linear-gradient(90deg, #e4e4e7 25%, #f4f4f5 50%, #e4e4e7 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+        }
+        .dark .skeleton {
+            background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+            background-size: 200% 100%;
+        }
     </style>
 </head>
 <body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-300 font-sans antialiased min-h-screen">
@@ -242,6 +255,11 @@
 
                 if (error || !article) throw error;
                 renderArticle(article);
+
+                // ভিউ ১ বাড়িয়ে দিন
+                await supabase.rpc('increment_article_views', { row_id: article.id });
+                // UI-তে তাৎক্ষণিক ১টি ভিউ বাড়িয়ে দেখান
+                article.views = (article.views || 0) + 1;
             } catch (err) {
                 console.error('Supabase error:', err);
                 showError();
@@ -260,11 +278,11 @@
             imgEl.src = article.image_url || 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1200';
             
             const date = new Date(article.created_at);
-            document.getElementById('article-date').textContent = date.toLocaleDateString('bn-BD', { 
+            document.getElementById('article-date').textContent = `${date.toLocaleDateString('bn-BD', { 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
-            });
+            })} • ${article.views || 0} ভিউ`;
 
             const content = article.content || article.excerpt || 'এই নিবন্ধটির কোনো বিস্তারিত তথ্য নেই।';
             const bodyContainer = document.getElementById('article-body');

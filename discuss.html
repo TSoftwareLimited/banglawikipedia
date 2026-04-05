@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>আলোচনা - উইকিপিডিয়া.বাংলা</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['"Hind Siliguri"', 'sans-serif'] } } } }
+    </script>
+    <style>
+        .glass { @apply bg-white/70 dark:bg-zinc-950/70 backdrop-blur-3xl border-zinc-200/50 dark:border-white/10; }
+        .skeleton { @apply animate-pulse bg-zinc-200 dark:bg-zinc-800 rounded-xl; }
+        @keyframes heart-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.4); }
+            100% { transform: scale(1); }
+        }
+        .heart-bounce { animation: heart-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    </style>
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-300 font-sans antialiased min-h-screen">
+
+    <nav class="sticky top-0 z-50 h-16 border-b glass flex items-center px-4 lg:px-6 justify-between">
+        <div onclick="window.location.href='index.html'" class="flex items-center gap-3 cursor-pointer">
+            <div class="w-9 h-9 bg-zinc-900 dark:bg-white rounded-xl flex items-center justify-center">
+                <span class="text-lg text-white dark:text-black font-bold">উ</span>
+            </div>
+            <span class="font-bold text-lg text-zinc-900 dark:text-white">উইকিপিডিয়া<span class="text-zinc-500">.বাংলা</span></span>
+        </div>
+        <button onclick="window.location.href='index.html#discuss'" class="px-4 py-2 text-sm font-medium bg-zinc-100 dark:bg-zinc-900 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">ফিরে যান</button>
+    </nav>
+
+    <main class="max-w-4xl mx-auto p-6 lg:p-12 space-y-8">
+        <div id="discussion-detail" class="space-y-6">
+            <div id="active-topic-header" class="bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 rounded-3xl p-6 lg:p-8 space-y-4">
+                <div class="flex justify-between items-start gap-4">
+                    <h2 id="active-title" class="text-2xl lg:text-3xl font-black text-zinc-900 dark:text-white leading-tight">লোড হচ্ছে...</h2>
+                    <span id="active-date" class="text-xs text-zinc-500 font-medium whitespace-nowrap pt-1"></span>
+                </div>
+                <p id="active-author" class="text-sm font-bold text-blue-600 dark:text-blue-400"></p>
+                <p id="active-content" class="text-lg lg:text-xl text-zinc-700 dark:text-zinc-300 leading-relaxed"></p>
+                <div id="active-images" class="flex flex-wrap gap-2 mt-4"></div>
+                <div id="active-reactions" class="mt-4"></div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="font-bold text-xl px-2">উত্তরসমূহ</h3>
+                <div id="replies-list" class="space-y-4">
+                    <div class="h-24 skeleton w-full"></div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4 shadow-sm">
+                <h4 class="font-bold text-zinc-900 dark:text-white">আপনার উত্তর দিন</h4>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold uppercase text-zinc-400 px-1">ছবি যুক্ত করুন</label>
+                    <input type="file" id="reply-images" multiple accept="image/*" class="w-full text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <textarea id="reply-content" placeholder="আপনার উত্তর লিখুন..." rows="3" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/40"></textarea>
+                <button id="submit-reply" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all">উত্তর জমা দিন</button>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container" class="fixed bottom-8 left-1/2 -translate-x-1/2 flex flex-col gap-3 z-[300] w-full max-w-md px-4 pointer-events-none"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+        const supabase = createClient('https://ejawztjfekggwtlyymym.supabase.co', 'sb_publishable_qzyHuTPdiitg0FZE6XCA5g_orpm2TsH');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const shortCode = urlParams.get('c') || urlParams.get('id');
+        let discussionId = null; 
+        let discussionAuthorId = null;
+        let discussionTitle = "";
+        const user = JSON.parse(localStorage.getItem('wiki_user'));
+        
+        function generateAvatarHtml(authorName) {
+            const initial = authorName ? authorName.charAt(0).toUpperCase() : 'U';
+            const colors = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-indigo-500', 'bg-rose-500'];
+            const hash = authorName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const color = colors[hash % colors.length];
+            return `<div class="w-10 h-10 rounded-full ${color} flex items-center justify-center text-white text-lg font-bold shadow-inner flex-shrink-0">${initial}</div>`;
+        }
+        window.generateAvatarHtml = generateAvatarHtml;
+
+        function shareDiscussion(code) {
+            const url = `${window.location.origin}/discuss.html?c=${code}`;
+            if (navigator.share) {
+                navigator.share({ title: 'উইকিপিডিয়া.বাংলা আলোচনা', url }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(url).then(() => { showToast('লিঙ্ক কপি করা হয়েছে!', 'success'); });
+            }
+        }
+        window.shareDiscussion = shareDiscussion;
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl glass border pointer-events-auto transition-all duration-300`;
+            toast.innerHTML = `<p class="font-bold text-sm ${type === 'error' ? 'text-red-500' : 'text-blue-500'}">${message}</p>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 4000);
+        }
+
+        function openModal() {
+            showToast('পছন্দ করতে বা উত্তর দিতে অনুগ্রহ করে আগে প্রবেশ করুন।', 'info');
+            setTimeout(() => window.location.href = 'index.html', 1500);
+        }
+
+        async function getReactionStats(targetId) {
+            const currentUser = JSON.parse(localStorage.getItem('wiki_user'));
+            const { count, error: countError } = await supabase.from('discussion_reactions').select('*', { count: 'exact', head: true }).eq('target_id', targetId);
+            
+            let isLiked = false;
+            if (currentUser) {
+                const { data, error: reactError } = await supabase
+                    .from('discussion_reactions')
+                    .select('id')
+                    .eq('target_id', targetId)
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+                if (!reactError && data) isLiked = true;
+            }
+            return { count: countError ? 0 : count, isLiked };
+        }
+
+        async function toggleReaction(targetId) {
+            const user = JSON.parse(localStorage.getItem('wiki_user'));
+            if (!user) return openModal();
+
+            const btn = document.getElementById(`reaction-btn-${targetId}`);
+            const countEl = document.getElementById(`reaction-count-${targetId}`);
+            if (!btn || !countEl) return;
+
+            const isCurrentlyLiked = btn.classList.contains('text-blue-600');
+            const currentCount = parseInt(countEl.textContent);
+
+            // Trigger subtle heart animation
+            const svg = btn.querySelector('svg');
+            svg.classList.add('heart-bounce');
+            svg.addEventListener('animationend', () => svg.classList.remove('heart-bounce'), { once: true });
+
+            // Optimistic Update
+            if (isCurrentlyLiked) {
+                btn.classList.remove('text-blue-600');
+                if (btn.querySelector('svg')) btn.querySelector('svg').setAttribute('fill', 'none');
+                countEl.textContent = currentCount - 1;
+            } else {
+                btn.classList.add('text-blue-600');
+                if (btn.querySelector('svg')) btn.querySelector('svg').setAttribute('fill', 'currentColor');
+                countEl.textContent = currentCount + 1;
+            }
+
+            try {
+                const { data: existing, error: fetchError } = await supabase
+                    .from('discussion_reactions')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('target_id', targetId)
+                    .maybeSingle();
+
+                if (fetchError) throw fetchError;
+
+                if (existing) {
+                    const { error: delError } = await supabase.from('discussion_reactions').delete().eq('id', existing.id);
+                    if (delError) throw delError;
+                } else {
+                    const { error: insError } = await supabase.from('discussion_reactions').insert([{ user_id: user.id, target_id: targetId }]);
+                    if (insError) throw insError;
+                }
+            } catch (err) {
+                console.error("Reaction toggle error:", err);
+                showToast('পছন্দ আপডেট করতে সমস্যা হয়েছে।', 'error');
+            }
+        }
+        window.toggleReaction = toggleReaction;
+
+        async function renderTopicHeader(topic) {
+            document.getElementById('active-title').textContent = topic.title;
+            document.getElementById('active-content').textContent = topic.content;
+            
+            const authorContainer = document.getElementById('active-author');
+            authorContainer.innerHTML = `
+                <div class="flex items-center gap-3">
+                    ${generateAvatarHtml(topic.author)}
+                    <div>
+                        <p class="font-bold text-zinc-900 dark:text-white">${topic.author}</p>
+                        <span class="text-xs text-zinc-500">${new Date(topic.created_at).toLocaleDateString('bn-BD')} • ${topic.views || 0} ভিউ</span>
+                    </div>
+                </div>
+            `;
+            
+            const imgContainer = document.getElementById('active-images');
+            const urls = topic.image_urls || [];
+            if (urls.length > 0) {
+                const total = urls.length;
+                const displayImages = urls.slice(0, 4);
+                const gridCols = total === 1 ? 'grid-cols-1' : 'grid-cols-2';
+                imgContainer.className = `grid ${gridCols} gap-1 mt-4 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800`;
+                imgContainer.innerHTML = displayImages.map((url, index) => {
+                    const isLast = index === 3 && total > 4;
+                    let spanClass = "h-48 sm:h-64";
+                    if (total === 1) spanClass = "h-64 sm:h-[450px]";
+                    if (total === 3 && index === 0) spanClass = "col-span-2 h-56 sm:h-80";
+                    return `
+                    <div class="relative ${spanClass} overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                        <img src="${url}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-700">
+                        ${isLast ? `
+                            <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+                                <span class="text-white text-4xl font-black">+${total - 3}</span>
+                            </div>
+                        ` : ''}
+                    </div>`;
+                }).join('');
+            } else { imgContainer.innerHTML = ''; imgContainer.className = ''; }
+            
+            const stats = await getReactionStats(topic.id);
+            const reactionContainer = document.getElementById('active-reactions');
+            reactionContainer.innerHTML = `
+                <div class="flex items-center gap-4 text-sm text-zinc-500 border-t border-zinc-100 dark:border-zinc-800 pt-3">
+                    <button id="reaction-btn-${topic.id}" onclick="toggleReaction('${topic.id}')" class="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${stats.isLiked ? 'text-blue-600' : ''}">
+                        <svg class="w-4 h-4" fill="${stats.isLiked ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg> <span id="reaction-count-${topic.id}">${stats.count}</span>
+                    </button>
+                    <button onclick="shareDiscussion('${topic.short_code || topic.id}')" class="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.516 3.91M16 12a3 3 0 110-6 3 3 0 010 6zm0 0l-6.516-3.91"></path></svg> শেয়ার
+                    </button>
+                </div>
+            `;
+        }
+
+        async function fetchReplies() {
+            const list = document.getElementById('replies-list');
+            try {
+                const { data, error } = await supabase.from('discussion_replies').select('*').eq('discussion_id', discussionId).order('created_at', { ascending: true });
+                if (error) throw error;
+                
+                const items = await Promise.all(data.map(async r => {
+                    const stats = await getReactionStats(r.id);
+                    return `
+                    <div class="flex gap-2">
+                        ${generateAvatarHtml(r.author)}
+                        <div class="flex-1">
+                            <div class="bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 px-4 py-2 rounded-[1.2rem] inline-block max-w-full">
+                                <p class="font-bold text-xs text-zinc-900 dark:text-white mb-0.5 leading-none">${r.author}</p>
+                                <p class="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">${r.content}</p>
+                            </div>
+                            <div class="mt-2 ml-2">
+                                ${r.image_urls && r.image_urls.length > 0 ? (() => {
+                                    const total = r.image_urls.length;
+                                    const displayImages = r.image_urls.slice(0, 4);
+                                    const gridCols = total === 1 ? 'grid-cols-1' : 'grid-cols-2';
+                                    return `
+                                    <div class="grid ${gridCols} gap-1 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 max-w-md">
+                                        ${displayImages.map((url, index) => {
+                                            const isLast = index === 3 && total > 4;
+                                            const spanClass = total === 1 ? 'h-48' : (total === 3 && index === 0 ? 'col-span-2 h-40' : 'h-32');
+                                            return `
+                                            <div class="relative ${spanClass} overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                                <img src="${url}" class="w-full h-full object-cover">
+                                                ${isLast ? `
+                                                    <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                                        <span class="text-white text-xl font-black">+${total - 3}</span>
+                                                    </div>
+                                                ` : ''}
+                                            </div>`;
+                                        }).join('')}
+                                    </div>`;
+                                })() : ''}
+                            </div>
+                            <div class="flex items-center gap-4 text-[10px] text-zinc-500 font-bold ml-3 mt-1 uppercase tracking-wider">
+                                <button id="reaction-btn-${r.id}" onclick="toggleReaction('${r.id}')" class="hover:underline transition-colors ${stats.isLiked ? 'text-blue-600' : ''}">Like (<span id="reaction-count-${r.id}">${stats.count}</span>)</button>
+                                <span>${new Date(r.created_at).toLocaleDateString('bn-BD')}</span>
+                                <button onclick="shareDiscussion('${r.id}')" class="hover:underline transition-colors">Share</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }));
+                list.innerHTML = items.join('') || '<p class="text-zinc-500 text-center py-4">কোনো উত্তর নেই।</p>';
+            } catch (err) { console.error(err); }
+        }
+
+        async function uploadMultipleImages(files) {
+            const urls = [];
+            for (let file of files) {
+                const formData = new FormData();
+                formData.append('key', 'a861b1b999d131e58bda7029ab6eee29');
+                formData.append('image', file);
+                try {
+                    const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+                    const json = await res.json();
+                    if (json.success) urls.push(json.data.url);
+                } catch (e) { console.error("Upload failed", e); }
+            }
+            return urls;
+        }
+
+        document.getElementById('submit-reply').onclick = async () => {
+            if (!user) return openModal();
+            const content = document.getElementById('reply-content').value;
+            const imageFiles = document.getElementById('reply-images').files;
+            if (!content) return showToast('উত্তর লিখুন।', 'error');
+
+            const btn = document.getElementById('submit-reply');
+            btn.disabled = true; btn.textContent = 'জমা হচ্ছে...';
+
+            const imageUrls = await uploadMultipleImages(imageFiles);
+            const { error } = await supabase.from('discussion_replies').insert([{ 
+                discussion_id: discussionId, 
+                author: user.full_name, 
+                content,
+                image_urls: imageUrls
+            }]);
+            
+            btn.disabled = false; btn.textContent = 'উত্তর জমা দিন';
+            if (!error) {
+                document.getElementById('reply-content').value = '';
+                document.getElementById('reply-images').value = '';
+                fetchReplies();
+                showToast('আপনার উত্তর সফলভাবে যুক্ত হয়েছে!', 'success');
+
+                // Send Notification to Discussion Author
+                if (discussionAuthorId && discussionAuthorId !== user.id) {
+                    await supabase.from('notifications').insert([{
+                        user_id: discussionAuthorId,
+                        actor_name: user.full_name,
+                        type: 'discussion_reply',
+                        target_id: shortCode,
+                        target_title: discussionTitle
+                    }]);
+                }
+            } else {
+                showToast('ত্রুটি: ' + error.message, 'error');
+            }
+        };
+
+        async function init() {
+            if (!shortCode) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Try fetching by short_code first, fallback to id for compatibility
+            let { data: topic, error } = await supabase.from('discussions').select('*').eq('short_code', shortCode).maybeSingle();
+            
+            if (!topic && shortCode.length > 20) { // Likely an old UUID link
+                const { data: legacyTopic } = await supabase.from('discussions').select('*').eq('id', shortCode).maybeSingle();
+                topic = legacyTopic;
+            }
+
+            if (!topic) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Set the global discussionId for replies and reactions
+            discussionId = topic.id;
+            discussionAuthorId = topic.user_id;
+            discussionTitle = topic.title;
+
+            // Increment views via RPC
+            await supabase.rpc('increment_discussion_views', { row_id: discussionId });
+            
+            // UI-তে তাৎক্ষণিক আপডেট দেখানোর জন্য
+            topic.views = (topic.views || 0) + 1;
+
+            renderTopicHeader(topic);
+            fetchReplies();
+        }
+
+        init();
+    </script>
+</body>
+</html>
